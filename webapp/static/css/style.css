@@ -1,0 +1,153 @@
+/* GPT Training Console — custom styles */
+
+body {
+  background-color: #111827;
+  color: #e5e7eb;
+}
+
+.navbar-brand {
+  letter-spacing: 0.04em;
+}
+
+/* Device badge */
+.device-badge {
+  background-color: #1e40af;
+  color: #bfdbfe;
+  border-radius: 0.5rem;
+  font-family: monospace;
+}
+
+/* Chart area */
+.chart-area {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  height: 260px;
+  position: relative;
+}
+
+.chart-area canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Sample / generated text */
+.sample-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  color: #d1fae5;
+  background: transparent;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Metric cards */
+.card {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+}
+
+.card-header {
+  background-color: #111827;
+  border-bottom: 1px solid #374151;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Accordion tweaks */
+.accordion-button {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #111827;
+  color: #60a5fa;
+  box-shadow: none;
+}
+
+.accordion-button::after {
+  filter: invert(1);
+}
+
+.accordion-item {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+.accordion-body {
+  background-color: #1f2937;
+}
+
+/* Form controls */
+.form-control,
+.form-select {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: #374151;
+  border-color: #60a5fa;
+  color: #e5e7eb;
+  box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25);
+}
+
+/* Status alert */
+.alert-secondary {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+.alert-success {
+  background-color: #064e3b;
+  border-color: #065f46;
+  color: #a7f3d0;
+}
+
+.alert-danger {
+  background-color: #7f1d1d;
+  border-color: #991b1b;
+  color: #fca5a5;
+}
+
+.alert-warning {
+  background-color: #78350f;
+  border-color: #92400e;
+  color: #fcd34d;
+}
+
+/* Parameter hint text */
+.param-hint {
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin-top: 0.2rem;
+  line-height: 1.3;
+}
+
+/* Resource monitor bars */
+.res-bar {
+  height: 6px;
+  background-color: #374151;
+  border-radius: 3px;
+}
+
+.res-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.res-value {
+  font-size: 0.8rem;
+  color: #e5e7eb;
+  font-family: monospace;
+}

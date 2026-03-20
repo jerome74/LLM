@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Generate Text{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">&#x1F4DD; Generate Text</h3>
+
+<div class="row g-4">
+  <!-- ===== LEFT — controls ===== -->
+  <div class="col-lg-5 col-xl-4">
+
+    <div class="card mb-3">
+      <div class="card-header">Checkpoint</div>
+      <div class="card-body">
+        <div class="mb-2">
+          <label class="form-label">Select checkpoint</label>
+          <select class="form-select" id="ckpt-select">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <button class="btn btn-primary w-100" id="btn-load" onclick="loadCheckpoint()">
+          &#x1F4C2; Load
+        </button>
+        <div id="load-status" class="small text-muted mt-2"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Generation Settings</div>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <label class="form-label d-flex justify-content-between">
+            Max New Tokens <output id="out-max_new_tokens">100</output>
+          </label>
+          <input type="range" class="form-range" id="max_new_tokens" min="10" max="500" step="10" value="100"
+                 oninput="document.getElementById('out-max_new_tokens').value=this.value">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label d-flex justify-content-between">
+            Temperature <output id="out-temperature">1.0</output>
+          </label>
+          <input type="range" class="form-range" id="temperature" min="0.1" max="2.0" step="0.1" value="1.0"
+                 oninput="document.getElementById('out-temperature').value=parseFloat(this.value).toFixed(1)">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label d-flex justify-content-between">
+            Top-k <output id="out-top_k">50</output>
+          </label>
+          <input type="range" class="form-range" id="top_k" min="1" max="200" value="50"
+                 oninput="document.getElementById('out-top_k').value=this.value">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Prompt</label>
+          <textarea class="form-control" id="prompt" rows="3">Once upon a time</textarea>
+        </div>
+
+        <button class="btn btn-success w-100" id="btn-generate" onclick="generateText()" disabled>
+          &#x2728; Generate
+        </button>
+
+      </div>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- ===== RIGHT — info + output ===== -->
+  <div class="col-lg-7 col-xl-8">
+
+    <div class="card mb-3" id="model-info-card">
+      <div class="card-header">Model Info</div>
+      <div class="card-body">
+        <div class="row g-2 text-center" id="model-info-badges">
+          <div class="col-6 col-sm-3">
+            <div class="card py-2">
+              <div class="small text-muted">Parameters</div>
+              <div class="fw-bold" id="info-params">—</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="card py-2">
+              <div class="small text-muted">Layers</div>
+              <div class="fw-bold" id="info-layers">—</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="card py-2">
+              <div class="small text-muted">Heads</div>
+              <div class="fw-bold" id="info-heads">—</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="card py-2">
+              <div class="small text-muted">Emb Dim</div>
+              <div class="fw-bold" id="info-emb">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Generated Text</span>
+        <span id="gen-spinner" class="spinner-border spinner-border-sm text-light d-none"></span>
+      </div>
+      <div class="card-body p-2">
+        <pre id="gen-output" class="sample-pre mb-0">—</pre>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/generate.js') }}"></script>
+{% endblock %}

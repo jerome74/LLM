@@ -1,6 +1,6 @@
 # GPT Language Model — From Scratch
 
-An educational implementation of a GPT-style large language model built entirely from scratch with PyTorch. The project covers pretraining, weight loading from OpenAI's GPT-2, classification fine-tuning, and instruction-following fine-tuning.
+An educational implementation of a GPT-style large language model built entirely from scratch with PyTorch. The project covers pretraining, weight loading from OpenAI's GPT-2, classification fine-tuning, instruction-following fine-tuning, and a browser-based training console.
 
 ---
 
@@ -14,6 +14,7 @@ This repository implements the core components of the GPT architecture step by s
 - **Full GPT-2 Small config** (~124M parameters equivalent): 12 layers, 12 heads, 768-dim embeddings, 50 257-token vocabulary
 - **Text generation** with greedy decoding, temperature sampling, and top-k filtering
 - **Fine-tuning** for sentiment classification and instruction following
+- **Web Training Console** — browser UI to configure, run, and monitor training in real time
 
 ---
 
@@ -32,7 +33,7 @@ git clone <repo-url>
 cd LLM
 
 # 2. Create and activate a virtual environment (recommended)
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate       # macOS / Linux
 .venv\Scripts\activate          # Windows
 
@@ -46,7 +47,59 @@ pip install -r requirements.txt
 
 ---
 
-## Running the Models
+## Web Training Console
+
+A Flask-based browser UI for configuring hyperparameters, running pretraining, monitoring live loss curves, and generating text from saved checkpoints — no command line required.
+
+### Start the server
+
+```bash
+python webapp/app.py
+```
+
+Then open **http://127.0.0.1:5000** in your browser.
+
+### Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Home | `/` | Device badge (CPU / MPS / CUDA) and project overview |
+| Training | `/training` | Configure and run training with live loss chart |
+| Generate | `/generate` | Load a checkpoint and generate text |
+
+### Training Console walkthrough
+
+1. **Model Config** — set layers, attention heads, embedding dim, context length, and dropout. Each parameter has a description explaining its effect on memory and compute.
+2. **Training Config** — set epochs, batch size, eval frequency, learning rate, train/val split, and generation seed text.
+3. **Dataset** — select a built-in corpus (`inferno.txt` or `commedia.txt`) or upload any `.txt` file. Token counts are shown automatically.
+4. Press **▶ Start** — the loss chart updates after each epoch via Server-Sent Events. CPU, RAM, and GPU/MPS memory are polled every 2 seconds in the System Resources panel.
+5. Press **⏹ Stop** to interrupt between epochs, then **💾 Save** to write a checkpoint to `checkpoints/`.
+
+### Generate Console walkthrough
+
+1. Select a checkpoint from the dropdown and press **📂 Load** — model info (parameters, layers, heads, embedding dim) is displayed.
+2. Adjust **Max New Tokens**, **Temperature**, and **Top-k**.
+3. Enter a prompt and press **✨ Generate**.
+
+### API endpoints
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| `GET` | `/api/events` | SSE stream — live loss and sample events |
+| `POST` | `/api/train/start` | Start training (JSON config body) |
+| `POST` | `/api/train/stop` | Stop training between epochs |
+| `POST` | `/api/train/save` | Save checkpoint |
+| `GET` | `/api/system/stats` | CPU %, RAM, GPU/MPS memory |
+| `GET` | `/api/corpus/builtin` | List available built-in corpora |
+| `POST` | `/api/corpus/upload` | Upload a `.txt` corpus file |
+| `POST` | `/api/corpus/stats` | Token counts for a corpus |
+| `GET` | `/api/checkpoints` | List saved checkpoints |
+| `POST` | `/api/checkpoint/load` | Load a checkpoint for generation |
+| `POST` | `/api/generate` | Generate text from loaded model |
+
+---
+
+## Running the Models (CLI)
 
 ### Full GPT-2 Small — pretraining from scratch
 
@@ -138,11 +191,48 @@ Input token IDs  (B, T)
 
 ---
 
+## Project Structure
+
+```
+LLM/
+├── LLM.py                     # GPT-2 Small training pipeline (entry point)
+├── gpt_model.py               # Reusable model architecture
+├── gpt_utils.py               # Generation utilities (temperature, top-k)
+├── nano_gpt.py                # Lightweight 6-layer GPT on inferno.txt
+├── loader.py                  # Load OpenAI GPT-2 TF checkpoint weights
+├── config.py                  # URLs and paths (env-var overridable)
+├── requirements.txt
+├── webapp/
+│   ├── app.py                 # Flask app — all routes
+│   ├── state.py               # Server-side training state singleton
+│   ├── training_engine.py     # Background training thread (wraps train_model_simple)
+│   ├── checkpoint_manager.py  # save_checkpoint / load_checkpoint
+│   ├── templates/
+│   │   ├── base.html          # Bootstrap 5 layout + navbar
+│   │   ├── index.html         # Home page
+│   │   ├── training.html      # Training console
+│   │   └── generate.html      # Generation console
+│   └── static/
+│       ├── css/style.css      # Dark theme styles
+│       └── js/
+│           ├── training.js    # SSE consumer + Chart.js
+│           └── generate.js    # Checkpoint loader + generation form
+├── chatgpt.ipynb
+├── classifier_fine_tuning.ipynb
+├── instruction_file_tuning.ipynb
+├── inferno.txt
+├── commedia.txt
+├── train.csv / validation.csv / test.csv
+└── instruction-data.json
+```
+
+---
+
 ## Dataset Files
 
 | File | Description |
 |------|-------------|
-| `inferno.txt` | Dante's Inferno (706 lines) — training corpus for nano_gpt |
+| `inferno.txt` | Dante's Inferno (706 lines) — training corpus for nano_gpt and webapp |
 | `commedia.txt` | Full Divina Commedia (14 752 lines) |
 | `train.csv` / `validation.csv` / `test.csv` | Sentiment classification dataset (Label + Text columns) |
 | `instruction-data.json` | 5 500 instruction-response pairs for instruction tuning |
@@ -157,11 +247,13 @@ Input token IDs  (B, T)
 | `torch >= 2.2.2` | Neural network framework |
 | `tiktoken >= 0.5.1` | GPT-2 tokenizer (BPE, 50 257-token vocab) |
 | `tensorflow >= 2.16.2` | Loading pre-trained OpenAI GPT-2 checkpoints |
+| `flask >= 3.0` | Web Training Console server |
 | `jupyterlab >= 4.0` | Notebook interface |
 | `matplotlib >= 3.7.1` | Loss curve visualization |
 | `pandas >= 2.2.1` | CSV dataset handling |
 | `tqdm >= 4.66.1` | Progress bars |
 | `numpy >= 1.26` | Numerical utilities |
+| `psutil >= 5.9.5` | CPU / RAM monitoring in the web console |
 
 ---
 

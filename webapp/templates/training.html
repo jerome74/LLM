@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}Training Console{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">&#x1F4CA; Training Console</h3>
+
+<div class="row g-4">
+  <!-- ===== LEFT COLUMN — config ===== -->
+  <div class="col-xl-4 col-lg-5">
+    <div class="accordion" id="configAccordion">
+
+      <!-- Model Config -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#colModel">
+            Model Config
+          </button>
+        </h2>
+        <div id="colModel" class="accordion-collapse collapse show" data-bs-parent="#configAccordion">
+          <div class="accordion-body">
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Layers <output id="out-n_layers">4</output>
+              </label>
+              <input type="range" class="form-range" id="n_layers" min="1" max="12" value="4"
+                     oninput="document.getElementById('out-n_layers').value=this.value">
+              <div class="param-hint">Transformer blocks stacked in depth. More layers = richer representations and higher memory/compute cost.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Attention Heads <output id="out-n_heads">4</output>
+              </label>
+              <input type="range" class="form-range" id="n_heads" min="1" max="12" value="4"
+                     oninput="document.getElementById('out-n_heads').value=this.value; enableStartIfReady()">
+              <div class="param-hint">Parallel attention patterns per layer. Must evenly divide Embedding Dim. More heads = finer-grained attention.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Embedding Dim <output id="out-emb_dim">256</output>
+              </label>
+              <select class="form-select" id="emb_dim" onchange="document.getElementById('out-emb_dim').value=this.value; enableStartIfReady()">
+                <option value="64">64</option>
+                <option value="128">128</option>
+                <option value="256" selected>256</option>
+                <option value="384">384</option>
+                <option value="512">512</option>
+                <option value="768">768</option>
+              </select>
+              <div class="param-hint">Width of token representations. Larger = more expressive model but proportionally more GPU memory.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Context Length <output id="out-context_length">256</output>
+              </label>
+              <select class="form-select" id="context_length" onchange="document.getElementById('out-context_length').value=this.value">
+                <option value="64">64</option>
+                <option value="128">128</option>
+                <option value="256" selected>256</option>
+                <option value="512">512</option>
+                <option value="1024">1024</option>
+              </select>
+              <div class="param-hint">Max tokens the model attends to at once. Longer = more coherent text but attention memory grows quadratically.</div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label d-flex justify-content-between">
+                Dropout <output id="out-drop_rate">0.1</output>
+              </label>
+              <input type="range" class="form-range" id="drop_rate" min="0" max="0.5" step="0.05" value="0.1"
+                     oninput="document.getElementById('out-drop_rate').value=parseFloat(this.value).toFixed(2)">
+              <div class="param-hint">Fraction of activations randomly zeroed during training to prevent overfitting. Set to 0 for tiny datasets.</div>
+            </div>
+
+            <div id="heads-warning" class="alert alert-warning py-1 px-2 d-none small">
+              emb_dim must be divisible by n_heads
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Config -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#colTrain">
+            Training Config
+          </button>
+        </h2>
+        <div id="colTrain" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
+          <div class="accordion-body">
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Epochs <output id="out-num_epochs">5</output>
+              </label>
+              <input type="range" class="form-range" id="num_epochs" min="1" max="20" value="5"
+                     oninput="document.getElementById('out-num_epochs').value=this.value">
+              <div class="param-hint">Full passes over the training data. More epochs = lower loss but risk of overfitting.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Batch Size <output id="out-batch_size">4</output>
+              </label>
+              <input type="range" class="form-range" id="batch_size" min="1" max="32" value="4"
+                     oninput="document.getElementById('out-batch_size').value=this.value">
+              <div class="param-hint">Sequences per gradient update. Larger = smoother gradients and faster training, but higher RAM/VRAM usage.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-flex justify-content-between">
+                Eval Frequency <output id="out-eval_freq">5</output>
+              </label>
+              <input type="range" class="form-range" id="eval_freq" min="1" max="50" value="5"
+                     oninput="document.getElementById('out-eval_freq').value=this.value">
+              <div class="param-hint">Compute train/val loss every N steps. Lower = more chart updates but slightly slower training.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Learning Rate</label>
+              <select class="form-select" id="learning_rate">
+                <option value="0.0001">1e-4</option>
+                <option value="0.0003">3e-4</option>
+                <option value="0.0005" selected>5e-4</option>
+                <option value="0.001">1e-3</option>
+              </select>
+              <div class="param-hint">Step size for AdamW optimizer. Too high = unstable loss; too low = slow convergence. 5e-4 is a safe default.</div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label d-flex justify-content-between">
+                Train Split <output id="out-train_ratio">0.9</output>
+              </label>
+              <input type="range" class="form-range" id="train_ratio" min="0.5" max="0.99" step="0.01" value="0.9"
+                     oninput="document.getElementById('out-train_ratio').value=parseFloat(this.value).toFixed(2)">
+              <div class="param-hint">Fraction of tokens used for training; the rest go to validation. 0.9 = 90% train / 10% val.</div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Start Context
+                <span class="param-hint d-inline ms-1">Seed text used to generate a sample after each epoch.</span>
+              </label>
+              <input type="text" class="form-control form-control-sm" id="start_context" value="Once upon a time">
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Dataset -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#colData">
+            Dataset
+          </button>
+        </h2>
+        <div id="colData" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
+          <div class="accordion-body">
+
+            <div class="mb-3">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="corpus_source" id="src_builtin" value="builtin" checked onchange="toggleCorpusUI()">
+                <label class="form-check-label" for="src_builtin">Built-in</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="corpus_source" id="src_upload" value="upload" onchange="toggleCorpusUI()">
+                <label class="form-check-label" for="src_upload">Upload</label>
+              </div>
+            </div>
+
+            <div id="builtin-ui">
+              <label class="form-label">Corpus file</label>
+              <select class="form-select" id="builtin_file">
+                <option value="">Loading…</option>
+              </select>
+            </div>
+
+            <div id="upload-ui" class="d-none">
+              <label class="form-label">Upload .txt file</label>
+              <input type="file" class="form-control" id="upload_file" accept=".txt" onchange="handleUpload(this)">
+              <small id="upload-info" class="text-muted"></small>
+            </div>
+
+            <div id="corpus-stats" class="mt-3 d-none">
+              <table class="table table-sm table-borderless mb-0 small">
+                <tbody>
+                  <tr><td class="text-muted">Total tokens</td><td id="stat-total">—</td></tr>
+                  <tr><td class="text-muted">Train tokens</td><td id="stat-train">—</td></tr>
+                  <tr><td class="text-muted">Val tokens</td><td id="stat-val">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /accordion -->
+
+    <!-- Controls -->
+    <div class="d-flex gap-2 mt-3">
+      <button id="btn-start" class="btn btn-success flex-grow-1" onclick="startTraining()" disabled>
+        &#x25B6; Start
+      </button>
+      <button id="btn-stop" class="btn btn-danger flex-grow-1" onclick="stopTraining()" disabled>
+        &#x23F9; Stop
+      </button>
+      <button id="btn-save" class="btn btn-secondary flex-grow-1" onclick="saveCheckpoint()" disabled>
+        &#x1F4BE; Save
+      </button>
+    </div>
+    <div id="save-msg" class="mt-2 small text-success d-none"></div>
+
+  </div><!-- /left -->
+
+  <!-- ===== RIGHT COLUMN — live view ===== -->
+  <div class="col-xl-8 col-lg-7">
+
+    <!-- Training metrics -->
+    <div class="row g-2 mb-3">
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-2">
+          <div class="card-body p-1">
+            <div class="small text-muted">Epoch</div>
+            <div class="fw-bold fs-5" id="m-epoch">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-2">
+          <div class="card-body p-1">
+            <div class="small text-muted">Step</div>
+            <div class="fw-bold fs-5" id="m-step">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-2">
+          <div class="card-body p-1">
+            <div class="small text-muted">Train Loss</div>
+            <div class="fw-bold fs-5" id="m-tloss">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-2">
+          <div class="card-body p-1">
+            <div class="small text-muted">Val Loss</div>
+            <div class="fw-bold fs-5" id="m-vloss">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-area mb-3">
+      <canvas id="loss-chart"></canvas>
+    </div>
+
+    <!-- System resources -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>System Resources</span>
+        <span class="text-muted" style="font-size:0.7rem" id="res-updated"></span>
+      </div>
+      <div class="card-body p-3">
+        <div class="row g-3">
+
+          <!-- CPU -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="res-label">CPU</span>
+              <span class="res-value" id="res-cpu-pct">—</span>
+            </div>
+            <div class="progress res-bar">
+              <div class="progress-bar bg-info" id="res-cpu-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- RAM -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="res-label">RAM</span>
+              <span class="res-value" id="res-ram-val">—</span>
+            </div>
+            <div class="progress res-bar">
+              <div class="progress-bar bg-warning" id="res-ram-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- GPU / MPS -->
+          <div class="col-12" id="res-gpu-row">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="res-label" id="res-gpu-label">GPU</span>
+              <span class="res-value" id="res-gpu-val">—</span>
+            </div>
+            <div class="progress res-bar">
+              <div class="progress-bar bg-success" id="res-gpu-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="status-bar" class="alert alert-secondary py-2 small mb-3">
+      Idle — configure and press Start.
+    </div>
+
+    <!-- Sample text -->
+    <div class="card">
+      <div class="card-header small text-muted">Last Generated Sample</div>
+      <div class="card-body p-2">
+        <pre id="sample-text" class="sample-pre mb-0">—</pre>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /row -->
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/training.js') }}"></script>
+{% endblock %}
