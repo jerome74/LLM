@@ -3,6 +3,8 @@ import os  # Importa il modulo OS per operazioni su file/percorso; non crea tens
 
 import requests  # Libreria HTTP per scaricare il testo (dataset); non crea tensori
 
+from config import GENESIS_URL, GENESIS_FILE_PATH  # URL e percorso dataset da configurazione esterna
+
 import torch  # Importa PyTorch (base di tensori/NN); definisce torch.Tensor e funzioni core
 
 import tiktoken  # Tokenizer GPT-2 (encoding/decoding token IDs); usato per tokenizzare il testo
@@ -370,8 +372,8 @@ def main(gpt_config, settings):
     # Download data if necessary
     ##############################
 
-    file_path = "genesis.txt"  # Percorso locale del file dataset
-    url = "https://people.sc.fsu.edu/~jburkardt/datasets/text/genesis.txt"  # URL sorgente testo (Libro della Genesi in inglese)
+    file_path = GENESIS_FILE_PATH  # Percorso locale del file dataset (da config.py / env var GENESIS_FILE_PATH)
+    url = GENESIS_URL  # URL sorgente testo (da config.py / env var GENESIS_URL)
 
     if not os.path.exists(file_path):  # Se file non presente localmente
         response = requests.get(url, timeout=30)  # Scarica via HTTP con timeout 30s; response.status_code=200 atteso

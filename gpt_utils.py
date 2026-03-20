@@ -15,6 +15,7 @@ import urllib
 from loader import load_weights_into_gpt
 from gpt_model import GPTModel
 from tqdm import tqdm
+from config import GPT2_BASE_URL, GPT2_BACKUP_BASE_URL
 
 
 model_configs = {
@@ -40,8 +41,8 @@ def download_and_load_gpt2(model_size, models_dir):
 
     # Define paths
     model_dir = os.path.join(models_dir, model_size)
-    base_url = "https://openaipublic.blob.core.windows.net/gpt-2/models"
-    backup_base_url = "https://f001.backblazeb2.com/file/LLMs-from-scratch/gpt2"
+    base_url = GPT2_BASE_URL  # from config.py / env var GPT2_BASE_URL
+    backup_base_url = GPT2_BACKUP_BASE_URL  # from config.py / env var GPT2_BACKUP_BASE_URL
     filenames = [
         "checkpoint", "encoder.json", "hparams.json",
         "model.ckpt.data-00000-of-00001", "model.ckpt.index",
