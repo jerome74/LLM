@@ -6,7 +6,10 @@
 {% endblock %}
 
 {% block content %}
-<h3 class="mb-3">&#x1F4CA; Training Console</h3>
+<h3 class="page-heading">
+  <span class="heading-icon">&#x25B2;</span>
+  Training Console
+</h3>
 
 <div class="row g-4">
   <!-- ===== LEFT COLUMN — config ===== -->
@@ -22,6 +25,27 @@
         </h2>
         <div id="colModel" class="accordion-collapse collapse show" data-bs-parent="#configAccordion">
           <div class="accordion-body">
+
+            <!-- Model Architecture Selector -->
+            <div class="mb-3">
+              <label class="form-label">Architecture</label>
+              <div class="d-flex gap-2">
+                <div class="form-check flex-grow-1">
+                  <input class="form-check-input" type="radio" name="model_type" id="arch_gpt2" value="gpt2" checked onchange="onArchChange()">
+                  <label class="form-check-label" for="arch_gpt2">
+                    <strong>GPT-2</strong>
+                    <div class="param-hint">MHA · GELU · LayerNorm · learned pos. emb.</div>
+                  </label>
+                </div>
+                <div class="form-check flex-grow-1">
+                  <input class="form-check-input" type="radio" name="model_type" id="arch_gpt4" value="gpt4" onchange="onArchChange()">
+                  <label class="form-check-label" for="arch_gpt4">
+                    <strong>GPT-4 style</strong>
+                    <div class="param-hint">GQA · RoPE · SwiGLU · RMSNorm</div>
+                  </label>
+                </div>
+              </div>
+            </div>
 
             <div class="mb-3">
               <label class="form-label d-flex justify-content-between">
@@ -79,8 +103,21 @@
               <div class="param-hint">Fraction of activations randomly zeroed during training to prevent overfitting. Set to 0 for tiny datasets.</div>
             </div>
 
+            <!-- GPT-4 only: KV heads for Grouped Query Attention -->
+            <div class="mb-3 d-none" id="kv-heads-group">
+              <label class="form-label d-flex justify-content-between">
+                KV Heads (GQA) <output id="out-n_kv_heads">2</output>
+              </label>
+              <input type="range" class="form-range" id="n_kv_heads" min="1" max="12" value="2"
+                     oninput="document.getElementById('out-n_kv_heads').value=this.value; enableStartIfReady()">
+              <div class="param-hint">Key/Value heads for Grouped Query Attention. Must divide Attention Heads evenly. Fewer = lower memory; equal = standard MHA.</div>
+            </div>
+
             <div id="heads-warning" class="alert alert-warning py-1 px-2 d-none small">
               emb_dim must be divisible by n_heads
+            </div>
+            <div id="kv-heads-warning" class="alert alert-warning py-1 px-2 d-none small">
+              n_heads must be divisible by n_kv_heads
             </div>
           </div>
         </div>
@@ -185,15 +222,15 @@
             <div id="upload-ui" class="d-none">
               <label class="form-label">Upload .txt file</label>
               <input type="file" class="form-control" id="upload_file" accept=".txt" onchange="handleUpload(this)">
-              <small id="upload-info" class="text-muted"></small>
+              <small id="upload-info" style="color:var(--text-muted);font-size:0.75rem;"></small>
             </div>
 
             <div id="corpus-stats" class="mt-3 d-none">
               <table class="table table-sm table-borderless mb-0 small">
                 <tbody>
-                  <tr><td class="text-muted">Total tokens</td><td id="stat-total">—</td></tr>
-                  <tr><td class="text-muted">Train tokens</td><td id="stat-train">—</td></tr>
-                  <tr><td class="text-muted">Val tokens</td><td id="stat-val">—</td></tr>
+                  <tr><td style="color:var(--text-muted)">Total tokens</td><td id="stat-total">—</td></tr>
+                  <tr><td style="color:var(--text-muted)">Train tokens</td><td id="stat-train">—</td></tr>
+                  <tr><td style="color:var(--text-muted)">Val tokens</td><td id="stat-val">—</td></tr>
                 </tbody>
               </table>
             </div>
@@ -210,13 +247,13 @@
         &#x25B6; Start
       </button>
       <button id="btn-stop" class="btn btn-danger flex-grow-1" onclick="stopTraining()" disabled>
-        &#x23F9; Stop
+        &#x25A0; Stop
       </button>
       <button id="btn-save" class="btn btn-secondary flex-grow-1" onclick="saveCheckpoint()" disabled>
-        &#x1F4BE; Save
+        &#x2193; Save
       </button>
     </div>
-    <div id="save-msg" class="mt-2 small text-success d-none"></div>
+    <div id="save-msg" class="mt-2 small d-none" style="color:var(--green);"></div>
 
   </div><!-- /left -->
 
@@ -226,35 +263,27 @@
     <!-- Training metrics -->
     <div class="row g-2 mb-3">
       <div class="col-6 col-sm-3">
-        <div class="card text-center py-2">
-          <div class="card-body p-1">
-            <div class="small text-muted">Epoch</div>
-            <div class="fw-bold fs-5" id="m-epoch">—</div>
-          </div>
+        <div class="metric-card">
+          <div class="metric-label">Epoch</div>
+          <div class="metric-value" id="m-epoch">—</div>
         </div>
       </div>
       <div class="col-6 col-sm-3">
-        <div class="card text-center py-2">
-          <div class="card-body p-1">
-            <div class="small text-muted">Step</div>
-            <div class="fw-bold fs-5" id="m-step">—</div>
-          </div>
+        <div class="metric-card">
+          <div class="metric-label">Step</div>
+          <div class="metric-value" id="m-step">—</div>
         </div>
       </div>
       <div class="col-6 col-sm-3">
-        <div class="card text-center py-2">
-          <div class="card-body p-1">
-            <div class="small text-muted">Train Loss</div>
-            <div class="fw-bold fs-5" id="m-tloss">—</div>
-          </div>
+        <div class="metric-card">
+          <div class="metric-label">Train Loss</div>
+          <div class="metric-value" id="m-tloss">—</div>
         </div>
       </div>
       <div class="col-6 col-sm-3">
-        <div class="card text-center py-2">
-          <div class="card-body p-1">
-            <div class="small text-muted">Val Loss</div>
-            <div class="fw-bold fs-5" id="m-vloss">—</div>
-          </div>
+        <div class="metric-card">
+          <div class="metric-label">Val Loss</div>
+          <div class="metric-value" id="m-vloss">—</div>
         </div>
       </div>
     </div>
@@ -268,7 +297,7 @@
     <div class="card mb-3">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>System Resources</span>
-        <span class="text-muted" style="font-size:0.7rem" id="res-updated"></span>
+        <span style="font-size:0.7rem;color:var(--text-muted);" id="res-updated"></span>
       </div>
       <div class="card-body p-3">
         <div class="row g-3">
@@ -317,7 +346,7 @@
 
     <!-- Sample text -->
     <div class="card">
-      <div class="card-header small text-muted">Last Generated Sample</div>
+      <div class="card-header">Last Generated Sample</div>
       <div class="card-body p-2">
         <pre id="sample-text" class="sample-pre mb-0">—</pre>
       </div>

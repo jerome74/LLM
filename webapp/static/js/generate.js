@@ -38,15 +38,17 @@ async function loadCheckpoint() {
     return;
   }
 
+  const archLabel = data.model_type === 'gpt4' ? 'GPT-4 style' : 'GPT-2';
   document.getElementById('load-status').textContent =
-    `Loaded — epoch ${data.epoch}, step ${data.step}`;
+    `Loaded — ${archLabel} · epoch ${data.epoch}, step ${data.step}`;
 
   // Populate model info
   const cfg = data.gpt_config;
   document.getElementById('info-params').textContent =
     (data.params / 1e6).toFixed(2) + 'M';
   document.getElementById('info-layers').textContent = cfg.n_layers;
-  document.getElementById('info-heads').textContent = cfg.n_heads;
+  document.getElementById('info-heads').textContent =
+    cfg.n_kv_heads ? `${cfg.n_heads}Q/${cfg.n_kv_heads}KV` : cfg.n_heads;
   document.getElementById('info-emb').textContent = cfg.emb_dim;
 
   document.getElementById('btn-generate').disabled = false;

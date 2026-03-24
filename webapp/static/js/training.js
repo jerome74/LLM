@@ -11,16 +11,16 @@ const lossChart = new Chart(ctx, {
       {
         label: 'Train Loss',
         data: [],
-        borderColor: '#60a5fa',
-        backgroundColor: 'rgba(96,165,250,0.1)',
+        borderColor: '#CF4500',
+        backgroundColor: 'rgba(207,69,0,0.1)',
         tension: 0.3,
         pointRadius: 3,
       },
       {
         label: 'Val Loss',
         data: [],
-        borderColor: '#34d399',
-        backgroundColor: 'rgba(52,211,153,0.1)',
+        borderColor: '#4DAA74',
+        backgroundColor: 'rgba(77,170,116,0.1)',
         tension: 0.3,
         pointRadius: 3,
       },
@@ -31,11 +31,11 @@ const lossChart = new Chart(ctx, {
     maintainAspectRatio: false,
     animation: false,
     scales: {
-      x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
-      y: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+      x: { ticks: { color: '#6B6358' }, grid: { color: '#2E2B24' } },
+      y: { ticks: { color: '#6B6358' }, grid: { color: '#2E2B24' } },
     },
     plugins: {
-      legend: { labels: { color: '#e5e7eb' } },
+      legend: { labels: { color: '#A39B8E' } },
     },
   },
 });
@@ -137,13 +137,33 @@ function showStats(data) {
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
+function getModelType() {
+  return document.querySelector('input[name="model_type"]:checked').value;
+}
+
+function onArchChange() {
+  const isGpt4 = getModelType() === 'gpt4';
+  document.getElementById('kv-heads-group').classList.toggle('d-none', !isGpt4);
+  enableStartIfReady();
+}
+
 function validateHeads() {
-  const emb = parseInt(document.getElementById('emb_dim').value);
+  const emb   = parseInt(document.getElementById('emb_dim').value);
   const heads = parseInt(document.getElementById('n_heads').value);
-  const warn = document.getElementById('heads-warning');
+  const warn  = document.getElementById('heads-warning');
   const invalid = emb % heads !== 0;
   warn.classList.toggle('d-none', !invalid);
-  return !invalid;
+
+  // GQA constraint: n_heads % n_kv_heads == 0 (GPT-4 only)
+  let kvOk = true;
+  if (getModelType() === 'gpt4') {
+    const kvHeads = parseInt(document.getElementById('n_kv_heads').value);
+    const kvWarn  = document.getElementById('kv-heads-warning');
+    kvOk = heads % kvHeads === 0;
+    kvWarn.classList.toggle('d-none', kvOk);
+  }
+
+  return !invalid && kvOk;
 }
 
 function enableStartIfReady() {
@@ -167,7 +187,9 @@ async function startTraining() {
   lossChart.update();
 
   const isBuiltin = document.getElementById('src_builtin').checked;
+  const modelType = getModelType();
   const payload = {
+    model_type: modelType,
     n_layers: parseInt(document.getElementById('n_layers').value),
     n_heads: parseInt(document.getElementById('n_heads').value),
     emb_dim: parseInt(document.getElementById('emb_dim').value),
@@ -182,6 +204,10 @@ async function startTraining() {
     corpus_source: isBuiltin ? 'builtin' : 'upload',
     corpus_filename: isBuiltin ? document.getElementById('builtin_file').value : uploadedFilename,
   };
+
+  if (modelType === 'gpt4') {
+    payload.n_kv_heads = parseInt(document.getElementById('n_kv_heads').value);
+  }
 
   if (!isBuiltin && uploadedText) {
     payload.corpus_text = uploadedText;
@@ -203,7 +229,8 @@ async function startTraining() {
     return;
   }
 
-  setStatus(`Training started — ${(data.params / 1e6).toFixed(2)}M params on ${data.device}`, 'secondary');
+  const archLabel = modelType === 'gpt4' ? 'GPT-4 style' : 'GPT-2';
+  setStatus(`Training started — ${archLabel} · ${(data.params / 1e6).toFixed(2)}M params on ${data.device}`, 'secondary');
 
   // Open SSE stream
   eventSource = new EventSource('/api/events');

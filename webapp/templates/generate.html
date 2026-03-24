@@ -2,7 +2,10 @@
 {% block title %}Generate Text{% endblock %}
 
 {% block content %}
-<h3 class="mb-3">&#x1F4DD; Generate Text</h3>
+<h3 class="page-heading">
+  <span class="heading-icon">&#x2726;</span>
+  Generate Text
+</h3>
 
 <div class="row g-4">
   <!-- ===== LEFT — controls ===== -->
@@ -18,9 +21,9 @@
           </select>
         </div>
         <button class="btn btn-primary w-100" id="btn-load" onclick="loadCheckpoint()">
-          &#x1F4C2; Load
+          Load
         </button>
-        <div id="load-status" class="small text-muted mt-2"></div>
+        <div id="load-status" class="mt-2" style="font-size:0.8125rem;color:var(--text-muted);"></div>
       </div>
     </div>
 
@@ -58,7 +61,7 @@
         </div>
 
         <button class="btn btn-success w-100" id="btn-generate" onclick="generateText()" disabled>
-          &#x2728; Generate
+          Generate
         </button>
 
       </div>
@@ -74,27 +77,27 @@
       <div class="card-body">
         <div class="row g-2 text-center" id="model-info-badges">
           <div class="col-6 col-sm-3">
-            <div class="card py-2">
-              <div class="small text-muted">Parameters</div>
-              <div class="fw-bold" id="info-params">—</div>
+            <div class="metric-card">
+              <div class="metric-label">Parameters</div>
+              <div class="metric-value" style="font-size:1rem;" id="info-params">—</div>
             </div>
           </div>
           <div class="col-6 col-sm-3">
-            <div class="card py-2">
-              <div class="small text-muted">Layers</div>
-              <div class="fw-bold" id="info-layers">—</div>
+            <div class="metric-card">
+              <div class="metric-label">Layers</div>
+              <div class="metric-value" style="font-size:1rem;" id="info-layers">—</div>
             </div>
           </div>
           <div class="col-6 col-sm-3">
-            <div class="card py-2">
-              <div class="small text-muted">Heads</div>
-              <div class="fw-bold" id="info-heads">—</div>
+            <div class="metric-card">
+              <div class="metric-label">Heads</div>
+              <div class="metric-value" style="font-size:1rem;" id="info-heads">—</div>
             </div>
           </div>
           <div class="col-6 col-sm-3">
-            <div class="card py-2">
-              <div class="small text-muted">Emb Dim</div>
-              <div class="fw-bold" id="info-emb">—</div>
+            <div class="metric-card">
+              <div class="metric-label">Emb Dim</div>
+              <div class="metric-value" style="font-size:1rem;" id="info-emb">—</div>
             </div>
           </div>
         </div>
@@ -104,7 +107,7 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>Generated Text</span>
-        <span id="gen-spinner" class="spinner-border spinner-border-sm text-light d-none"></span>
+        <span id="gen-spinner" class="spinner-border spinner-border-sm d-none"></span>
       </div>
       <div class="card-body p-2">
         <pre id="gen-output" class="sample-pre mb-0">—</pre>
