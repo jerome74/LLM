@@ -22,10 +22,13 @@ class TrainingState:
     last_sample = ""
     corpus_name = ""
 
+    model_type = "gpt2"  # "gpt2" or "gpt4"
+
     # generation
     gen_model = None
     gen_config = None
     gen_device = None
+    gen_model_type = "gpt2"
 
 
 state = TrainingState()

@@ -106,6 +106,8 @@ def train_start():
 
     data = request.get_json()
 
+    model_type = data.get("model_type", "gpt2")  # "gpt2" or "gpt4"
+
     gpt_config = {
         "vocab_size": 50257,
         "context_length": int(data.get("context_length", 256)),
@@ -116,8 +118,15 @@ def train_start():
         "qkv_bias": False,
     }
 
+    if model_type == "gpt4":
+        gpt_config["n_kv_heads"] = int(data.get("n_kv_heads", max(1, gpt_config["n_heads"] // 3)))
+        gpt_config["rope_base"] = int(data.get("rope_base", 10000))
+
     if gpt_config["emb_dim"] % gpt_config["n_heads"] != 0:
         return jsonify({"error": "emb_dim must be divisible by n_heads"}), 400
+
+    if model_type == "gpt4" and gpt_config["n_heads"] % gpt_config["n_kv_heads"] != 0:
+        return jsonify({"error": "n_heads must be divisible by n_kv_heads"}), 400
 
     # Corpus: inline text takes priority, then built-in file
     corpus_text = data.get("corpus_text")
@@ -135,6 +144,7 @@ def train_start():
         gpt_config,
         learning_rate=float(data.get("learning_rate", 5e-4)),
         weight_decay=float(data.get("weight_decay", 0.1)),
+        model_type=model_type,
     )
     train_loader, val_loader = build_dataloaders(
         corpus_text,
@@ -157,6 +167,7 @@ def train_start():
     state.current_step = 0
     state.last_sample = ""
     state.corpus_name = data.get("corpus_filename", "custom")
+    state.model_type = model_type
     state.training_active = True
 
     state.training_thread = start_training_thread(
@@ -194,6 +205,7 @@ def train_save():
     save_checkpoint(
         state.model, state.optimizer, state.gpt_config,
         state.current_epoch, state.current_step, path,
+        model_type=state.model_type,
     )
     return jsonify({"status": "saved", "filename": filename})
 
@@ -272,6 +284,7 @@ def checkpoint_load():
     state.gen_model = model
     state.gen_config = meta["gpt_config"]
     state.gen_device = get_device()
+    state.gen_model_type = meta.get("model_type", "gpt2")
 
     cfg = meta["gpt_config"]
     return jsonify({
@@ -279,6 +292,7 @@ def checkpoint_load():
         "epoch": meta["epoch"],
         "step": meta["step"],
         "gpt_config": cfg,
+        "model_type": meta.get("model_type", "gpt2"),
         "params": sum(p.numel() for p in model.parameters()),
     })
 
@@ -302,8 +316,9 @@ def generate_text():
     temperature = float(data.get("temperature", 1.0))
     top_k = int(data.get("top_k", 50))
 
+    from training_engine import get_context_size
     tokenizer = tiktoken.get_encoding("gpt2")
-    context_size = state.gen_model.pos_emb.weight.shape[0]
+    context_size = get_context_size(state.gen_model, state.gen_config)
     encoded = text_to_token_ids(prompt, tokenizer).to(state.gen_device)
 
     with torch.no_grad():

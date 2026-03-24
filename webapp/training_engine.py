@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gpt_model import GPTModel
+from gpt_model4 import GPT4Model
 from LLM import (
     GPTDatasetV1,
     generate,
@@ -33,9 +34,19 @@ def count_parameters(model) -> int:
     return sum(p.numel() for p in model.parameters())
 
 
-def build_model_and_optimizer(gpt_config, learning_rate, weight_decay):
+def get_context_size(model, cfg):
+    """Return context_length regardless of model type (GPT-2 uses pos_emb, GPT-4 uses attribute)."""
+    if hasattr(model, "pos_emb"):
+        return model.pos_emb.weight.shape[0]
+    return model.context_length
+
+
+def build_model_and_optimizer(gpt_config, learning_rate, weight_decay, model_type="gpt2"):
     device = get_device()
-    model = GPTModel(gpt_config)
+    if model_type == "gpt4":
+        model = GPT4Model(gpt_config)
+    else:
+        model = GPTModel(gpt_config)
     model.to(device)
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=learning_rate, weight_decay=weight_decay
@@ -108,7 +119,7 @@ def _run_training(
 
             # Generate a sample with temperature (richer than train_model_simple's greedy output)
             model.eval()
-            context_size = model.pos_emb.weight.shape[0]
+            context_size = get_context_size(model, None)
             encoded = text_to_token_ids(start_context, tokenizer).to(device)
             with torch.no_grad():
                 token_ids = generate(
